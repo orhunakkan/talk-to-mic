@@ -15,12 +15,25 @@ Audio never leaves the machine; only the transcript (and the app name/window tit
 plus the selected text in Ask Anything. History and the personal dictionary are stored locally in
 `%APPDATA%\talk-to-mic\talk-to-mic.db`.
 
+## Requirements
+
+- Windows 10 or 11 (x64).
+- A microphone.
+- **A CPU is all you need.** Speech recognition runs on the CPU only (int8); talk-to-mic does
+  not use a GPU, even if one is installed. Expect a few seconds of processing per dictation with
+  the default `small` model on a modern desktop CPU; slower or older machines take longer (use
+  the `base` model there).
+- Optional: an [Anthropic API key](https://console.anthropic.com/) for Claude cleanup, Ask
+  Anything and Translate. Without one, the raw Whisper transcript is pasted.
+
 ## Install
 
-Run `dist\talk-to-mic-setup-<version>.exe` (built with `.\build.ps1`, see below). It installs for
-your user only (no admin prompt) into `%LOCALAPPDATA%\Programs\talk-to-mic`, adds a Start menu
-entry, and can start talk-to-mic when you sign in. Uninstall from Settings > Apps; your settings
-in `%APPDATA%\talk-to-mic` are kept. Installing a newer build over an older one upgrades it.
+There is no prebuilt download; build the installer yourself (see
+[Building the installer](#building-the-installer)), then run
+`dist\talk-to-mic-setup-<version>.exe`. It installs for your user only (no admin prompt) into
+`%LOCALAPPDATA%\Programs\talk-to-mic`, adds a Start menu entry, and can start talk-to-mic when you
+sign in. Uninstall from Settings > Apps; your settings in `%APPDATA%\talk-to-mic` are kept.
+Installing a newer build over an older one upgrades it.
 
 For Claude cleanup, Ask Anything and Translate, open talk-to-mic (click the tray icon) >
 Settings and paste your API key; it is stored in Windows Credential Manager. Without a key the
@@ -35,13 +48,13 @@ A microphone icon appears in the tray: grey = loading, blue = ready, red = liste
 amber = transcribing. The first start downloads the Whisper model (~480 MB for `small`) and opens
 the talk-to-mic window.
 
-**Quit Typeless first** (or change one app's hotkey) - both use Right Alt by default.
+If you also use Typeless, quit it first (or change one app's hotkey): both use Right Alt by default.
 
 ## Using it
 
 - Hold Right Alt for at least 0.25 s while speaking; release to paste.
 - Quick taps are ignored, and Right Alt used in a combination (AltGr characters such as `@`
-  on a Turkish Q layout, or shortcuts) cancels the dictation, so AltGr keeps working.
+  on some keyboard layouts, or shortcuts) cancels the dictation, so AltGr keeps working.
 - Releasing Right Alt after a dictation does not open the focused window's menu bar.
 - **Ask Anything**: hold Right Alt, press Space, speak an instruction, release. With text
   selected, edits ("make this more formal", "translate to German") replace the selection; with
@@ -75,8 +88,8 @@ comments for every option) and restart the app. Notable ones:
 | `translation.target_language` | `English` | any language name Claude understands |
 | `history.enabled` / `keep_audio` / `retention_days` | `true` / `false` / `0` | `0` days keeps history forever |
 | `ui.floating_bar` | `true` | the listening/processing bar |
-| `transcription.model` | `small` | `large-v3-turbo` is more accurate but slower on CPU; `base` is faster |
-| `transcription.language` | auto | set e.g. `"en"` or `"tr"` to skip language detection |
+| `transcription.model` | `small` | `base` is faster on slower CPUs; `large-v3-turbo` is more accurate but much slower |
+| `transcription.language` | auto | set e.g. `"en"` or `"de"` to skip language detection |
 | `transcription.vocabulary` | `[]` | names and jargon to spell your way (the Dictionary page is easier) |
 | `cleanup.model` | `claude-haiku-5-5` | fast and cheap (~$0.0001 per dictation); `claude-opus-5-5` is the most capable but ~40x the cost |
 | `cleanup.effort` | `low` | higher effort is slower and rarely needed here |
@@ -86,25 +99,13 @@ With `claude-opus-5-5` (or another Opus/Sonnet 5.5-era model) the request opts i
 (`fallbacks: "default"`), so a rare safety decline is retried on another model instead of failing.
 If Claude is unreachable, declines, or no key is set, the raw transcript is pasted instead.
 
-## Using the RX 7900 XTX (optional)
-
-faster-whisper's GPU support is NVIDIA-only, so it runs on the CPU here (about 2 s for 10 s of
-speech with `small` on the i7-14700K). To use the AMD GPU, build
-[whisper.cpp](https://github.com/ggml-org/whisper.cpp) with Vulkan (`-DGGML_VULKAN=1`; needs CMake,
-Visual Studio Build Tools and the Vulkan SDK), start its server:
-
-```powershell
-whisper-server.exe -m ggml-large-v3-turbo.bin --port 8178
-```
-
-and set `transcription.engine = "whisper_server"`.
-
 ## Limitations
 
+- Transcription is CPU-only; there is no GPU (CUDA, ROCm or DirectML) acceleration.
 - Windows blocks hooks and simulated keystrokes into apps running as administrator unless
   talk-to-mic also runs as administrator. If a paste is blocked, the text is left on the clipboard.
 - Only plain text is pasted (no rich text).
-- **Right Alt + Space now starts Ask Anything.** In 1.0 it cancelled the dictation like any other
+- **Right Alt + Space starts Ask Anything.** In 1.0 it cancelled the dictation like any other
   AltGr combination. If your keyboard layout types a character with AltGr + Space, set Ask
   Anything to Off (or another key) in Settings.
 - Ask Anything reads the selection by sending Ctrl+C. This is skipped in terminals, where Ctrl+C
@@ -112,6 +113,8 @@ and set `transcription.engine = "whisper_server"`.
   treated as the selection.
 
 ## Development
+
+Needs Python 3.14.
 
 ```powershell
 python -m venv .venv
