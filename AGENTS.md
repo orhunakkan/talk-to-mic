@@ -67,10 +67,14 @@ scripts/make-sample-wav.sh .scratch-appdata/sample.wav
 .venv/bin/python -m talk_to_mic --transcribe .scratch-appdata/sample.wav
 ```
 
+- The tests need no display, network, microphone or API key.
 - The keyboard hook ignores keys injected with XTEST (xdotool), just as the Windows hook ignores
   injected keystrokes, so leave dictation tests to the user.
-- `packaging/linux/install.sh` installs for the user (see README); the API key is kept in the
-  Secret Service keyring.
+- Run the app from source with `.venv/bin/python -m talk_to_mic`. The installed copy
+  (`packaging/linux/install.sh`) usually starts at sign-in, and a second copy exits with code 1, so
+  ask the user to quit it from the tray first.
+- Settings, history and logs live in `~/.config/talk-to-mic/` unless `APPDATA` is set. The API
+  key is kept in the Secret Service keyring (Windows: Credential Manager).
 
 ## Conventions
 
