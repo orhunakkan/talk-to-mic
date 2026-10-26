@@ -5,7 +5,7 @@ from __future__ import annotations
 from PySide6.QtCore import QRect
 from PySide6.QtGui import QCursor, QGuiApplication, QScreen
 
-from .. import win32
+from ..native import win32
 
 
 def target_screen(hwnd: int) -> QScreen:

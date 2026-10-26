@@ -6,6 +6,7 @@ import copy
 import datetime as dt
 import logging
 import os
+import sys
 import threading
 import time
 from typing import TYPE_CHECKING
@@ -49,7 +50,9 @@ from .. import __version__
 from ..cleanup import EFFORT_LEVELS, check_api_key
 from ..config import CONFIG_PATH, Config
 from ..hotkey import COMBO_KEYS, HOTKEYS, parse_chord
+from ..native import credentials
 from ..store import HistoryEntry
+from ..tray import open_file as tray_open_file
 
 if TYPE_CHECKING:
     from ..app import App
@@ -701,7 +704,7 @@ class SettingsPage(QWidget):
         footer.setContentsMargins(28, 8, 28, 16)
         open_file = QPushButton("Open config.toml")
         open_file.setToolTip("Edit by hand; restart talk-to-mic afterwards")
-        open_file.clicked.connect(lambda: os.startfile(CONFIG_PATH))
+        open_file.clicked.connect(lambda: tray_open_file(CONFIG_PATH))
         self.saved_label = muted()
         revert = QPushButton("Revert")
         revert.clicked.connect(self.refresh)
@@ -765,7 +768,7 @@ class SettingsPage(QWidget):
         self._select(self.translate_combo, cfg.hotkey.translate_combo)
         self.paste_last.setText(cfg.hotkey.paste_last)
         self.device.clear()
-        self.device.addItem("Windows default microphone", "")
+        self.device.addItem("Windows default microphone" if sys.platform == "win32" else "System default microphone", "")
         for name in self._input_devices():
             self.device.addItem(name, name)
         if cfg.audio.input_device and self.device.findData(cfg.audio.input_device) < 0:
@@ -800,7 +803,7 @@ class SettingsPage(QWidget):
         self.key_edit.setEnabled(not from_env)
         self.key_test.setEnabled(not from_env)
         self.key_save.setEnabled(not from_env)
-        self.key_remove.setEnabled(not from_env and cleaner.key_source is not None and "Credential" in cleaner.key_source)
+        self.key_remove.setEnabled(not from_env and cleaner.key_source is not None and credentials.STORE_NAME in cleaner.key_source)
 
     def _test_key(self) -> None:
         key = self.key_edit.text().strip()
@@ -828,7 +831,7 @@ class SettingsPage(QWidget):
             QMessageBox.warning(self, "API key", f"Could not save the key: {exc}")
             return
         self.key_edit.clear()
-        self.key_result.setText("Saved in Windows Credential Manager.")
+        self.key_result.setText(f"Saved in {credentials.STORE_NAME}.")
         self._refresh_key_status()
         self._on_saved()
 

@@ -1,4 +1,8 @@
-from talk_to_mic import paste, win32
+import sys
+
+import pytest
+
+from talk_to_mic.native import paste, win32
 from talk_to_mic.hotkey import Intent
 from talk_to_mic.ui.floating_bar import busy_label, intent_label, level_to_height
 from talk_to_mic.ui.hub import chord_label, format_minutes, format_when, key_label, one_line, start_of_today
@@ -33,6 +37,7 @@ def test_formatting():
     assert one_line("a\n b   c") == "a b c" and one_line("x" * 200, 10) == "x" * 9 + "…"
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Linux terminals copy with Ctrl+Shift+C (test_paste_x11.py)")
 def test_copy_selection_skips_terminals(monkeypatch):
     sent = []
     monkeypatch.setattr(win32, "send_ctrl_c", lambda: sent.append(1) or True)

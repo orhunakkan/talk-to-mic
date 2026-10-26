@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from talk_to_mic import credentials
+from talk_to_mic.native import credentials
 from talk_to_mic.cleanup import (
     AskError,
     Cleaner,
@@ -16,7 +16,7 @@ from talk_to_mic.config import CleanupConfig
 from talk_to_mic.store import Store
 from talk_to_mic.transcriber import whisper_prompt
 from talk_to_mic.vocabulary import claude_terms, whisper_terms
-from talk_to_mic.win32 import ForegroundApp
+from talk_to_mic.native import ForegroundApp
 
 
 class FakeMessages:
@@ -136,7 +136,7 @@ def test_stored_key_is_used_when_no_env_var(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.setattr(credentials, "read_api_key", lambda target=credentials.TARGET: "sk-ant-stored")
     cleaner = Cleaner(CleanupConfig())
-    assert cleaner.client.api_key == "sk-ant-stored" and "Credential Manager" in cleaner.key_source
+    assert cleaner.client.api_key == "sk-ant-stored" and credentials.STORE_NAME in cleaner.key_source
 
 
 def test_env_var_wins_over_stored_key(monkeypatch):

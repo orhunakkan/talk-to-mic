@@ -1,4 +1,4 @@
-"""User settings, stored as TOML in %APPDATA%\\talk-to-mic\\config.toml."""
+"""User settings, stored as TOML in %APPDATA%\\talk-to-mic\\config.toml (~/.config/talk-to-mic/ on Linux)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,8 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-APP_DIR = Path(os.environ.get("APPDATA", Path.home())) / "talk-to-mic"
+# APPDATA is always set on Windows; elsewhere it still wins, so tests can point it at a scratch folder.
+APP_DIR = Path(os.environ.get("APPDATA") or os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "talk-to-mic"
 CONFIG_PATH = APP_DIR / "config.toml"
 LOG_PATH = APP_DIR / "talk-to-mic.log"
 DB_PATH = APP_DIR / "talk-to-mic.db"

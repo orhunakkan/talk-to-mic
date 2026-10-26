@@ -1,6 +1,6 @@
 # talk-to-mic
 
-Hold-to-dictate for Windows, modelled on Typeless: hold **Right Alt**, speak, release, and the
+Hold-to-dictate for Windows and Linux (X11), modelled on Typeless: hold **Right Alt**, speak, release, and the
 text is typed into whatever app has focus. Add **Space** while holding to ask Claude about the
 selected text (Ask Anything), or **Right Shift** to translate what you say.
 
@@ -13,11 +13,12 @@ selected text (Ask Anything), or **Right Shift** to translate what you say.
 
 Audio never leaves the machine; only the transcript (and the app name/window title) goes to Claude,
 plus the selected text in Ask Anything. History and the personal dictionary are stored locally in
-`%APPDATA%\talk-to-mic\talk-to-mic.db`.
+`%APPDATA%\talk-to-mic\talk-to-mic.db` (`~/.config/talk-to-mic/talk-to-mic.db` on Linux).
 
 ## Requirements
 
-- Windows 10 or 11 (x64).
+- Windows 10 or 11 (x64), or Linux with an X11 desktop session (tested on Linux Mint 22 Cinnamon;
+  Wayland sessions are not supported). See [Linux](#linux).
 - A microphone.
 - **A CPU is all you need.** Speech recognition runs on the CPU only (int8); talk-to-mic does
   not use a GPU, even if one is installed. Expect a few seconds of processing per dictation with
@@ -49,6 +50,33 @@ amber = transcribing. The first start downloads the Whisper model (~480 MB for `
 the talk-to-mic window.
 
 If you also use Typeless, quit it first (or change one app's hotkey): both use Right Alt by default.
+
+### Linux
+
+Needs Python 3.14 (e.g. `uv python install 3.14`) and two system libraries, then run the installer
+from a clone of this repository:
+
+```bash
+sudo apt install libportaudio2 libxcb-cursor0     # Debian, Ubuntu, Linux Mint
+packaging/linux/install.sh                        # asks whether to start talk-to-mic when you sign in
+```
+
+It installs for your user only into `~/.local/share/talk-to-mic` (its own copy of the app and a
+Python environment), adds a menu entry and the `talk-to-mic` command, and can add itself to
+`~/.config/autostart`. Run it again after pulling a newer version to upgrade;
+`packaging/linux/install.sh --uninstall` removes it and keeps your settings in `~/.config/talk-to-mic`.
+The API key entered in Settings is stored in the system keyring (GNOME Keyring on Cinnamon and GNOME,
+KWallet on KDE); `ANTHROPIC_API_KEY` still takes precedence.
+
+Everything works as on Windows, with these differences:
+
+- Your session must be X11: Wayland doesn't let apps watch a global hotkey or type into other apps.
+- In terminals (GNOME Terminal, Konsole, kitty, ...) text is pasted with Ctrl+Shift+V, and Ask
+  Anything reads the selection with Ctrl+Shift+C, so it works there too.
+- While you hold the hotkey, Space (Ask Anything) goes to talk-to-mic even if the desktop uses
+  Alt+Space itself (Cinnamon opens the window menu with it).
+- F13-F24, Scroll Lock and Pause also reach the focused app when used as the hotkey (apps ignore
+  them); Caps Lock is switched back after each hold.
 
 ## Using it
 
@@ -104,6 +132,8 @@ If Claude is unreachable, declines, or no key is set, the raw transcript is past
 - Transcription is CPU-only; there is no GPU (CUDA, ROCm or DirectML) acceleration.
 - Windows blocks hooks and simulated keystrokes into apps running as administrator unless
   talk-to-mic also runs as administrator. If a paste is blocked, the text is left on the clipboard.
+- On Linux only X11 sessions are supported; apps sandboxed away from X11 (some Flatpaks) may not
+  report their name, so Claude gets only the window title as a style hint.
 - Only plain text is pasted (no rich text).
 - **Right Alt + Space starts Ask Anything.** In 1.0 it cancelled the dictation like any other
   AltGr combination. If your keyboard layout types a character with AltGr + Space, set Ask
@@ -124,6 +154,22 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m talk_to_mic --transcribe sample.wav   # check the model + Claude settings
 .\.venv\Scripts\python.exe -m talk_to_mic -v                         # log transcripts to the log file
 ```
+
+On Linux:
+
+```bash
+python3.14 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m talk_to_mic                          # run from source (quit the installed copy first)
+.venv/bin/python -m pytest
+```
+
+The OS-specific code is in [talk_to_mic/win32.py](talk_to_mic/win32.py),
+[paste.py](talk_to_mic/paste.py), [credentials.py](talk_to_mic/credentials.py) and
+[hotkey_win32.py](talk_to_mic/hotkey_win32.py) on Windows, and in [x11.py](talk_to_mic/x11.py),
+[paste_x11.py](talk_to_mic/paste_x11.py), [credentials_linux.py](talk_to_mic/credentials_linux.py) and
+[hotkey_x11.py](talk_to_mic/hotkey_x11.py) on Linux. [native.py](talk_to_mic/native.py) picks the
+right set; everything else is shared.
 
 See [docs/typeless-analysis.md](docs/typeless-analysis.md) for how Typeless itself works, and
 [PLAN.md](PLAN.md) for the 1.1 feature plan.

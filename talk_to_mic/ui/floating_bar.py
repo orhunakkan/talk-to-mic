@@ -14,7 +14,7 @@ from PySide6.QtCore import QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
 from PySide6.QtWidgets import QWidget
 
-from .. import win32
+from ..native import win32
 from ..hotkey import Intent
 from ..tray import Status
 from .screens import available_rect, bottom_center, target_screen

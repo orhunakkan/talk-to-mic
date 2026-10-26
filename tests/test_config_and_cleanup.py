@@ -5,7 +5,7 @@ import httpx2
 
 from talk_to_mic.cleanup import Cleaner, build_user_message
 from talk_to_mic.config import DEFAULT_CONFIG_TEXT, CleanupConfig, parse_config
-from talk_to_mic.win32 import ForegroundApp
+from talk_to_mic.native import ForegroundApp
 
 
 def test_default_config_text_matches_dataclass_defaults():

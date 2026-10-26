@@ -1,7 +1,8 @@
 # Notes for coding agents
 
-talk-to-mic is a Windows-only tray app (Python 3.14, PySide6). Read [README.md](README.md) for what
-it does; this file covers setting it up and checking it works.
+talk-to-mic is a tray app for Windows and Linux X11 sessions (Python 3.14, PySide6). Read
+[README.md](README.md) for what it does; this file covers setting it up and checking it works.
+The commands below are for Windows; see [Linux](#linux) for the equivalents.
 
 ## Setup
 
@@ -51,6 +52,25 @@ $env:APPDATA = "$PWD\.scratch-appdata"        # keep the user's real settings an
 
 Needs Inno Setup 6 (`winget install JRSoftware.InnoSetup`), then `.\build.ps1`. The output is
 `dist\talk-to-mic-setup-<version>.exe`. `build/` and `dist/` are git-ignored.
+
+## Linux
+
+Needs an X11 session, Python 3.14 (`uv python install 3.14` if the distribution lacks it) and
+`sudo apt install libportaudio2 libxcb-cursor0` (plus `espeak-ng` for the sample WAV).
+
+```bash
+python3.14 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pytest -q
+export APPDATA="$PWD/.scratch-appdata"          # also honoured on Linux: keeps ~/.config/talk-to-mic untouched
+scripts/make-sample-wav.sh .scratch-appdata/sample.wav
+.venv/bin/python -m talk_to_mic --transcribe .scratch-appdata/sample.wav
+```
+
+- The keyboard hook ignores keys injected with XTEST (xdotool), just as the Windows hook ignores
+  injected keystrokes, so leave dictation tests to the user.
+- `packaging/linux/install.sh` installs for the user (see README); the API key is kept in the
+  Secret Service keyring.
 
 ## Conventions
 

@@ -28,7 +28,7 @@ def setup_logging(verbose: bool) -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         handlers=handlers,
     )
-    for noisy in ("httpx", "httpx2", "httpcore", "httpcore2", "huggingface_hub", "faster_whisper", "PIL", "tomlkit"):
+    for noisy in ("httpx", "httpx2", "httpcore", "httpcore2", "huggingface_hub", "faster_whisper", "PIL", "tomlkit", "keyring"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
 
@@ -63,12 +63,12 @@ def main() -> int:
         return transcribe_file(args.transcribe)
 
     from .app import App
-    from .win32 import acquire_single_instance, signal_open_event
+    from .native import win32
 
-    mutex = acquire_single_instance()
+    mutex = win32.acquire_single_instance()
     if mutex is None:
         logging.getLogger(__name__).warning("talk-to-mic is already running; showing its window")
-        signal_open_event()
+        win32.signal_open_event()
         return 1
     first_run = not CONFIG_PATH.exists()
     App(load_config(), first_run=first_run).run()

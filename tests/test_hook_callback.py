@@ -1,8 +1,14 @@
 """Drives KeyboardHook's Win32 callback with fake events to check that every detector sees them."""
 
 import ctypes
+import sys
 
-from talk_to_mic.hotkey import (
+import pytest
+
+if sys.platform != "win32":
+    pytest.skip("Win32 keyboard hook (see test_hook_x11.py)", allow_module_level=True)
+
+from talk_to_mic.hotkey import (  # noqa: E402
     LLKHF_INJECTED,
     WM_KEYDOWN,
     WM_KEYUP,

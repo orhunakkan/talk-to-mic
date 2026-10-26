@@ -13,6 +13,7 @@ import win32cred
 log = logging.getLogger(__name__)
 
 TARGET = "talk-to-mic/anthropic"
+STORE_NAME = "Windows Credential Manager"
 ERROR_NOT_FOUND = 1168
 
 

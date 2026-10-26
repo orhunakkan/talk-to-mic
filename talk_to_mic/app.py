@@ -1,7 +1,7 @@
 """Wires the pieces together.
 
 Threads:
-  keyboard-hook  - Windows keyboard hook; posts hotkey actions to the controller queue
+  keyboard-hook  - keyboard hook (Windows or X11); posts hotkey actions to the controller queue
   controller     - starts/stops the microphone in response to those actions
   worker         - loads the speech model, then transcribes, cleans up and pastes each recording
   open-listener  - waits for a second launch of the app to ask for the main window
@@ -22,11 +22,11 @@ import numpy as np
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication
 
-from . import credentials, paste, win32
 from .audio import SAMPLE_RATE, START_TONE, STOP_TONE, Recorder, beep
 from .cleanup import AskError, Cleaner, Term
 from .config import DB_PATH, Config
 from .hotkey import Action, Intent, KeyboardHook, build_detectors
+from .native import ForegroundApp, credentials, foreground_app, paste, win32
 from .settings_store import copy_into, save_config
 from .store import Store
 from .transcriber import Transcriber, create_transcriber, is_silent, to_wav
@@ -35,7 +35,6 @@ from .ui.bridge import CardContent, UiBridge
 from .ui.card import AnswerCard
 from .ui.floating_bar import FloatingBar
 from .vocabulary import claude_terms, whisper_terms
-from .win32 import ForegroundApp, foreground_app
 
 log = logging.getLogger(__name__)
 
@@ -206,7 +205,7 @@ class App:
         log.info("Settings saved")
 
     def set_api_key(self, key: str | None) -> None:
-        """Stores (or with None, removes) the Claude key in Credential Manager and reconnects."""
+        """Stores (or with None, removes) the Claude key in Credential Manager (or the keyring) and reconnects."""
         if key:
             credentials.write_api_key(key)
         else:

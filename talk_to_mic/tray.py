@@ -7,12 +7,13 @@ they are forwarded to the main thread through queued signals.
 from __future__ import annotations
 
 import os
+import sys
 from enum import Enum
 from typing import Callable
 
 from PIL import Image, ImageDraw
-from PySide6.QtCore import QObject, Signal
-from PySide6.QtGui import QIcon, QImage, QPixmap
+from PySide6.QtCore import QObject, QUrl, Signal
+from PySide6.QtGui import QDesktopServices, QIcon, QImage, QPixmap
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 from .config import CONFIG_PATH, LOG_PATH
@@ -55,6 +56,14 @@ def make_icon(color: tuple[int, int, int]) -> QIcon:
     return icon
 
 
+def open_file(path) -> None:
+    """Opens path in the app the system uses for its file type."""
+    if sys.platform == "win32":
+        os.startfile(path)
+    else:
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
+
+
 class Tray(QObject):
     _status_changed = Signal(object)
     _notified = Signal(str)
@@ -80,8 +89,8 @@ class Tray(QObject):
         self._cleanup_action.setCheckable(True)
         self._cleanup_action.triggered.connect(lambda: toggle_cleanup())
         menu.addSeparator()
-        menu.addAction("Open settings", lambda: os.startfile(CONFIG_PATH))
-        menu.addAction("Open log", lambda: os.startfile(LOG_PATH))
+        menu.addAction("Open settings", lambda: open_file(CONFIG_PATH))
+        menu.addAction("Open log", lambda: open_file(LOG_PATH))
         menu.addAction("Quit", on_quit)
         menu.aboutToShow.connect(self._refresh_menu)
         self._menu = menu  # QSystemTrayIcon does not take ownership

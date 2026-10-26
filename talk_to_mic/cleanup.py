@@ -13,9 +13,8 @@ from dataclasses import dataclass
 
 import anthropic
 
-from . import credentials
 from .config import CleanupConfig
-from .win32 import ForegroundApp
+from .native import ForegroundApp, credentials
 
 log = logging.getLogger(__name__)
 
@@ -189,7 +188,7 @@ class Cleaner:
         if os.environ.get("ANTHROPIC_API_KEY"):
             source = "ANTHROPIC_API_KEY"
         elif stored := credentials.read_api_key():
-            kwargs["api_key"], source = stored, "Settings (Windows Credential Manager)"
+            kwargs["api_key"], source = stored, f"Settings ({credentials.STORE_NAME})"
         else:
             source = "Anthropic credentials profile"
         try:
