@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build output (PyInstaller, Inno Setup)
+build/
+dist/
+
+# Secrets and local config
+.env
+.env.*
+*.pem
+*.key
+config.toml
+
+# Local data
+*.db
+*.db-wal
+*.db-shm
+*.wav
+*.log
+
+# Editors and OS
+.vscode/
+.idea/
+.claude/
+Thumbs.db
+Desktop.ini
+.DS_Store
