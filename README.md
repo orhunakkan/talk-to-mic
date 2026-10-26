@@ -114,7 +114,7 @@ If Claude is unreachable, declines, or no key is set, the raw transcript is past
 
 ## Development
 
-Needs Python 3.14.
+Needs Python 3.14. If you set this up with a coding agent, point it at [AGENTS.md](AGENTS.md).
 
 ```powershell
 python -m venv .venv

@@ -11,6 +11,9 @@ htmlcov/
 build/
 dist/
 
+# Scratch settings folder used when testing (see AGENTS.md)
+.scratch-appdata/
+
 # Secrets and local config
 .env
 .env.*
