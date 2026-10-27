@@ -1,6 +1,6 @@
 # talk-to-mic
 
-Hold-to-dictate for Windows and Linux (X11), modelled on Typeless: hold **Right Alt**, speak,
+Hold-to-dictate for Windows and Linux (X11), inspired by Typeless: hold **Right Alt**, speak,
 release, and the text is typed into whatever app has focus. Add **Space** while holding to ask
 Claude about the selected text (Ask Anything), or **Right Shift** to translate what you say.
 
@@ -262,8 +262,7 @@ The OS-specific code is in [talk_to_mic/win32.py](talk_to_mic/win32.py),
 [hotkey_x11.py](talk_to_mic/hotkey_x11.py) on Linux. [native.py](talk_to_mic/native.py) picks the
 right set; everything else is shared.
 
-See [docs/typeless-analysis.md](docs/typeless-analysis.md) for how Typeless itself works, and
-[PLAN.md](PLAN.md) for the 1.1 feature plan.
+See [PLAN.md](PLAN.md) for the 1.1 feature plan.
 
 ### Building the Windows installer
 
@@ -274,3 +273,7 @@ then Inno Setup packs that folder into `dist\talk-to-mic-setup-<version>.exe`
 [talk_to_mic/__init__.py](talk_to_mic/__init__.py) for a new release. On Linux,
 [packaging/linux/install.sh](packaging/linux/install.sh) installs straight from the clone; there is
 no package to build.
+
+## License
+
+[MIT](LICENSE)
