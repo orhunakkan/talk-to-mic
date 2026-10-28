@@ -11,6 +11,8 @@ a = Analysis(
     [str(ROOT / "packaging" / "launcher.py")],
     pathex=[str(ROOT)],
     datas=collect_data_files("faster_whisper"),  # Silero VAD model used by vad_filter
+    # win32cred.CredRead imports this from C to build the LastWritten timestamp, out of PyInstaller's sight.
+    hiddenimports=["win32timezone"],
     # Only QtCore/QtGui/QtWidgets are used; keep the rest of Qt out of the bundle.
     excludes=["pytest", "tkinter", "pystray", "PySide6.QtNetwork", "PySide6.QtQml", "PySide6.QtQuick",
               "PySide6.QtPdf", "PySide6.QtSvg", "PySide6.QtOpenGL", "PySide6.QtDBus", "PySide6.QtSql",
