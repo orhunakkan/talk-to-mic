@@ -12,9 +12,9 @@ from talk_to_mic.cleanup import (
     build_user_message,
     parse_ask_response,
 )
-from talk_to_mic.config import CleanupConfig
+from talk_to_mic.config import CleanupConfig, TranscriptionConfig
 from talk_to_mic.store import Store
-from talk_to_mic.transcriber import whisper_prompt
+from talk_to_mic.transcriber import FasterWhisperTranscriber, Transcript, pick_language, whisper_prompt
 from talk_to_mic.vocabulary import claude_terms, whisper_terms
 from talk_to_mic.native import ForegroundApp
 
@@ -119,6 +119,50 @@ def test_whisper_prompt_dedupes_and_trims():
     long = [f"term{i:03d}" for i in range(200)]
     prompt = whisper_prompt(long, max_chars=60)
     assert len(prompt) <= 60 and prompt.startswith("term000, term001")
+
+
+def test_pick_language_chooses_likeliest_allowed():
+    probs = [("az", 0.5), ("tr", 0.3), ("en", 0.15)]
+    assert pick_language(probs, ["en", "tr"]) == "tr"
+    assert pick_language(probs, ["en"]) == "en"
+    assert pick_language(probs, ["xx"]) is None  # unknown codes leave the choice to Whisper
+
+
+class FakeWhisper:
+    def __init__(self, probs):
+        self.probs = probs
+        self.model = SimpleNamespace(is_multilingual=True)
+        self.languages = []
+
+    def detect_language(self, audio, vad_filter=False):
+        return self.probs[0][0], self.probs[0][1], self.probs
+
+    def transcribe(self, audio, language=None, **kwargs):
+        self.languages.append(language)
+        info = SimpleNamespace(duration=1.0, language=language or self.probs[0][0])
+        return [SimpleNamespace(text=" Merhaba ")], info
+
+
+def fake_transcriber(cfg, probs):
+    transcriber = FasterWhisperTranscriber.__new__(FasterWhisperTranscriber)  # skip loading a real model
+    transcriber.cfg, transcriber.vocabulary, transcriber.model = cfg, (lambda: []), FakeWhisper(probs)
+    return transcriber
+
+
+def test_transcriber_restricts_detection_to_configured_languages():
+    probs = [("az", 0.6), ("tr", 0.3), ("en", 0.1)]
+    assert fake_transcriber(TranscriptionConfig(languages=["en", " TR "]), probs).transcribe(None) == Transcript("Merhaba", "tr")
+    unrestricted = fake_transcriber(TranscriptionConfig(), probs)
+    assert unrestricted.transcribe(None).language == "az" and unrestricted.model.languages == [None]
+    fixed = fake_transcriber(TranscriptionConfig(language="en", languages=["tr"]), probs)
+    assert fixed.transcribe(None).language == "en"  # an explicit language wins
+
+
+def test_clean_sends_spoken_language():
+    client, messages = fake_client("Deploy'u yaptım.")
+    Cleaner(CleanupConfig(), client=client).clean("diploy'u yaptım", None, language="tr")
+    assert "<spoken_language>tr</spoken_language>" in messages.calls[0]["messages"][0]["content"]
+    assert "spoken_language" not in build_user_message("hello", None)
 
 
 def test_vocabulary_merges_config_then_dictionary(tmp_path):

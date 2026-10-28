@@ -51,6 +51,9 @@ engine = "faster_whisper"
 model = "small"
 # Two-letter language code (e.g. "en", "tr"); empty = auto-detect.
 language = ""
+# Languages auto-detect may choose from, e.g. ["en", "tr"]; empty = any language Whisper knows.
+# Used by faster_whisper when language is empty.
+languages = []
 beam_size = 5
 # Names, jargon and spellings Whisper should prefer.
 vocabulary = []
@@ -114,6 +117,7 @@ class TranscriptionConfig:
     engine: str = "faster_whisper"
     model: str = "small"
     language: str = ""
+    languages: list[str] = field(default_factory=list)
     beam_size: int = 5
     vocabulary: list[str] = field(default_factory=list)
     server_url: str = "http://127.0.0.1:8178/inference"

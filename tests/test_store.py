@@ -1,3 +1,5 @@
+import sqlite3
+
 import pytest
 
 from talk_to_mic.store import Stats, Store
@@ -61,3 +63,19 @@ def test_dictionary(store):
     store.update_term(first, "kubectl", "")
     store.delete_term(first)
     assert [e.term for e in store.dictionary()] == ["Orhun"]
+
+
+def test_history_language_and_upgrade_from_version_1(tmp_path):
+    path = tmp_path / "old.db"
+    db = sqlite3.connect(path)  # a version 1 history table, without the language column
+    db.execute("CREATE TABLE history (id INTEGER PRIMARY KEY, created_at REAL NOT NULL, mode TEXT NOT NULL,"
+               " process_name TEXT NOT NULL DEFAULT '', window_title TEXT NOT NULL DEFAULT '',"
+               " raw_text TEXT NOT NULL DEFAULT '', final_text TEXT NOT NULL DEFAULT '',"
+               " duration_s REAL NOT NULL DEFAULT 0, word_count INTEGER NOT NULL DEFAULT 0, audio BLOB)")
+    db.execute("INSERT INTO history (created_at, mode) VALUES (1, 'dictate')")
+    db.commit()
+    db.close()
+    store = Store(path)
+    store.add_history("dictate", "", "", "merhaba", "Merhaba.", 1, created_at=2, language="tr")
+    assert [e.language for e in store.search_history()] == ["tr", ""]
+    store.close()

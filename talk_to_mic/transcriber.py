@@ -8,6 +8,7 @@ import logging
 import uuid
 import urllib.request
 import wave
+from dataclasses import dataclass
 from typing import Callable, Protocol
 
 import numpy as np
@@ -27,8 +28,14 @@ PROMPT_MAX_CHARS = 600
 VocabularyProvider = Callable[[], list[str]]
 
 
+@dataclass
+class Transcript:
+    text: str
+    language: str = ""  # two-letter code Whisper used, e.g. "tr"; "" when unknown
+
+
 class Transcriber(Protocol):
-    def transcribe(self, audio: np.ndarray) -> str: ...
+    def transcribe(self, audio: np.ndarray) -> Transcript: ...
 
 
 def is_silent(audio: np.ndarray) -> bool:
@@ -51,6 +58,17 @@ def whisper_prompt(terms: list[str], max_chars: int = PROMPT_MAX_CHARS) -> str |
     return ", ".join(kept) or None
 
 
+def allowed_languages(cfg: TranscriptionConfig) -> list[str]:
+    return [code.strip().lower() for code in cfg.languages if code.strip()]
+
+
+def pick_language(probabilities: list[tuple[str, float]], allowed: list[str]) -> str | None:
+    """The most likely of the allowed languages, or None (let Whisper choose) if none of them was scored."""
+    scores = dict(probabilities)
+    scored = [code for code in allowed if code in scores]
+    return max(scored, key=scores.__getitem__) if scored else None
+
+
 class FasterWhisperTranscriber:
     def __init__(self, cfg: TranscriptionConfig, vocabulary: VocabularyProvider | None = None):
         from faster_whisper import WhisperModel
@@ -64,10 +82,11 @@ class FasterWhisperTranscriber:
             self.model = WhisperModel(cfg.model, device="cpu", compute_type="int8")
         log.info("Whisper model %r loaded on CPU", cfg.model)
 
-    def transcribe(self, audio: np.ndarray) -> str:
+    def transcribe(self, audio: np.ndarray) -> Transcript:
+        language = self.cfg.language or self._detect_language(audio)
         segments, info = self.model.transcribe(
             audio,
-            language=self.cfg.language or None,
+            language=language,
             beam_size=self.cfg.beam_size,
             vad_filter=True,
             condition_on_previous_text=False,
@@ -75,7 +94,22 @@ class FasterWhisperTranscriber:
         )
         text = " ".join(segment.text.strip() for segment in segments).strip()
         log.info("Transcribed %.1fs of %s audio", info.duration, info.language)
-        return text
+        return Transcript(text, info.language)
+
+    def _detect_language(self, audio: np.ndarray) -> str | None:
+        """Picks from cfg.languages. Whisper would otherwise run this same detection itself, choosing
+        from every language it knows; None leaves the choice to it."""
+        allowed = allowed_languages(self.cfg)
+        if not allowed or not self.model.model.is_multilingual:
+            return None
+        try:
+            detected, _, probabilities = self.model.detect_language(audio, vad_filter=True)
+        except ValueError:  # no speech left after the VAD filter
+            return None
+        language = pick_language(probabilities, allowed)
+        if language and language != detected:
+            log.info("Detected %s; using %s, the likeliest of %s", detected, language, ", ".join(allowed))
+        return language
 
 
 class WhisperServerTranscriber:
@@ -85,7 +119,7 @@ class WhisperServerTranscriber:
         self.cfg = cfg
         self.vocabulary = vocabulary or (lambda: cfg.vocabulary)
 
-    def transcribe(self, audio: np.ndarray) -> str:
+    def transcribe(self, audio: np.ndarray) -> Transcript:
         boundary = uuid.uuid4().hex
         fields = {"response_format": "json", "temperature": "0.0"}
         if self.cfg.language:
@@ -107,7 +141,8 @@ class WhisperServerTranscriber:
             headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
         )
         with urllib.request.urlopen(request, timeout=60) as response:
-            return json.loads(response.read())["text"].strip()
+            text = json.loads(response.read())["text"].strip()
+        return Transcript(text, self.cfg.language)  # the server's json format doesn't report the language
 
 
 def to_wav(audio: np.ndarray) -> bytes:

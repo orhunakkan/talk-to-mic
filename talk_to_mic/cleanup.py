@@ -24,9 +24,11 @@ You clean up raw speech-to-text output so it can be pasted straight into the app
 Output only the cleaned text: no preamble, quotes, labels or explanations.
 
 Keep the speaker's meaning, wording, tone and language. Do not translate, summarize, shorten or add information.
-- Remove filler words (um, uh, you know, like), false starts and stutters.
+- Remove filler words (um, uh, you know, like; in Turkish ııı, şey, yani, hani when used as filler), false starts and stutters.
 - Apply spoken self-corrections: if the speaker corrects themselves, replace only the corrected words ("at three, no, at four" becomes "at four") and keep everything else they said, including the start of the sentence.
-- Fix punctuation, capitalization and obvious mis-hearings.
+- Fix punctuation, capitalization and obvious mis-hearings, including missing letters such as Turkish ç, ğ, ı, İ, ö, ş, ü.
+- <spoken_language>, when given, is the language code the speech recognizer transcribed in; the text is in that language.
+- The speaker often uses English terms inside other languages, especially Turkish. Write each such term in its normal English spelling, even if the transcript spells it phonetically ("diploy" becomes "deploy", "pul rikuest" becomes "pull request"), and never translate it. Keep Turkish suffixes attached the usual way ("deploy'u", "branch'te").
 - If a <dictionary> is given, spell its names and terms exactly as listed, and write a listed "may be heard as" phrase as its term when it clearly refers to it.
 - Turn spoken formatting into formatting when it is clearly intended: "new line", "new paragraph", and numbered or bulleted lists when the speaker enumerates items.
 - Match the register of the destination app (casual in chat apps, well-formed in email and documents) through punctuation and formatting only; never add greetings, sign-offs or other words the speaker did not say.
@@ -110,10 +112,13 @@ def _app_block(app: ForegroundApp | None) -> list[str]:
     return []
 
 
-def build_user_message(transcript: str, app: ForegroundApp | None, dictionary: list[Term] | None = None) -> str:
+def build_user_message(transcript: str, app: ForegroundApp | None, dictionary: list[Term] | None = None,
+                       language: str = "") -> str:
     parts = _app_block(app)
     if dictionary:
         parts.append(dictionary_block(dictionary))
+    if language:
+        parts.append(f"<spoken_language>{language}</spoken_language>")
     parts.append(f"<transcript>\n{transcript}\n</transcript>")
     return "\n\n".join(parts)
 
@@ -265,10 +270,11 @@ class Cleaner:
         log.error("%s; %s", self.last_error, note)
         return None
 
-    def clean(self, transcript: str, app: ForegroundApp | None = None, dictionary: list[Term] | None = None) -> str:
+    def clean(self, transcript: str, app: ForegroundApp | None = None, dictionary: list[Term] | None = None,
+              language: str = "") -> str:
         if not self.available or not transcript.strip():
             return transcript
-        message = build_user_message(transcript, app if self.cfg.send_app_context else None, dictionary)
+        message = build_user_message(transcript, app if self.cfg.send_app_context else None, dictionary, language)
         text = self._send(SYSTEM_PROMPT, message, "pasting the raw transcript")
         return transcript if text is None else text
 

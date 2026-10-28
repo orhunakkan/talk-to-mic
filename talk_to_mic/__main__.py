@@ -42,11 +42,12 @@ def transcribe_file(path: str) -> int:
     cfg = load_config()
     store = Store(DB_PATH) if DB_PATH.exists() else None
     terms = claude_terms(cfg.transcription.vocabulary, store)
-    raw = create_transcriber(cfg.transcription, lambda: [t.text for t in terms]).transcribe(load_wav(path))
-    print(f"raw:     {raw}")
+    transcript = create_transcriber(cfg.transcription, lambda: [t.text for t in terms]).transcribe(load_wav(path))
+    print(f"raw:     {transcript.text}")
+    print(f"language: {transcript.language or '?'}")
     cleaner = Cleaner(cfg.cleanup)
     if cleaner.available:
-        print(f"cleaned: {cleaner.clean(raw, dictionary=terms)}")
+        print(f"cleaned: {cleaner.clean(transcript.text, dictionary=terms, language=transcript.language)}")
     else:
         print("cleaned: (Claude cleanup unavailable - set ANTHROPIC_API_KEY)")
     return 0

@@ -16,7 +16,7 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS history (
@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS history (
     final_text TEXT NOT NULL DEFAULT '',
     duration_s REAL NOT NULL DEFAULT 0,
     word_count INTEGER NOT NULL DEFAULT 0,
-    audio BLOB
+    audio BLOB,
+    language TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS history_created_at ON history(created_at);
 CREATE VIRTUAL TABLE IF NOT EXISTS history_fts USING fts5(
@@ -66,6 +67,7 @@ class HistoryEntry:
     duration_s: float
     word_count: int
     has_audio: bool
+    language: str = ""
 
 
 @dataclass
@@ -118,6 +120,9 @@ class Store:
         with self._lock:
             self._db.execute("PRAGMA journal_mode=WAL")
             self._db.executescript(_SCHEMA)
+            columns = {row["name"] for row in self._db.execute("PRAGMA table_info(history)")}
+            if "language" not in columns:  # added in schema version 2
+                self._db.execute("ALTER TABLE history ADD COLUMN language TEXT NOT NULL DEFAULT ''")
             self._db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
     def close(self) -> None:
@@ -135,12 +140,13 @@ class Store:
     # --- history -------------------------------------------------------------
 
     def add_history(self, mode: str, process_name: str, window_title: str, raw_text: str, final_text: str,
-                    duration_s: float, audio: bytes | None = None, created_at: float | None = None) -> int:
+                    duration_s: float, audio: bytes | None = None, created_at: float | None = None,
+                    language: str = "") -> int:
         return self._exec(
             "INSERT INTO history (created_at, mode, process_name, window_title, raw_text, final_text,"
-            " duration_s, word_count, audio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            " duration_s, word_count, audio, language) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (created_at or time.time(), mode, process_name, window_title, raw_text, final_text,
-             duration_s, count_words(raw_text), audio),
+             duration_s, count_words(raw_text), audio, language),
         )
 
     def search_history(self, query: str = "", mode: str = "", limit: int = 500) -> list[HistoryEntry]:
@@ -154,7 +160,7 @@ class Store:
             params.append(mode)
         sql = (
             "SELECT h.id, h.created_at, h.mode, h.process_name, h.window_title, h.raw_text, h.final_text,"
-            " h.duration_s, h.word_count, h.audio IS NOT NULL AS has_audio FROM history h"
+            " h.duration_s, h.word_count, h.audio IS NOT NULL AS has_audio, h.language FROM history h"
             + (" WHERE " + " AND ".join(where) if where else "")
             + " ORDER BY h.created_at DESC, h.id DESC LIMIT ?"
         )

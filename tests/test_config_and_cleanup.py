@@ -12,6 +12,7 @@ def test_default_config_text_matches_dataclass_defaults():
     cfg = parse_config(DEFAULT_CONFIG_TEXT)
     assert cfg.hotkey.key == "right_alt"
     assert cfg.transcription.engine == "faster_whisper"
+    assert cfg.transcription.languages == []
     assert cfg.cleanup.model == "claude-haiku-5-5"
     assert cfg.paste.restore_clipboard is True
 

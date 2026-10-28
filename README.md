@@ -169,6 +169,7 @@ see [Where things are](#where-things-are)) and restart the app. Notable ones:
 | `ui.floating_bar` | `true` | the listening/processing bar |
 | `transcription.model` | `small` | `base` is faster on slower CPUs; `large-v3-turbo` is more accurate but much slower |
 | `transcription.language` | auto | set e.g. `"en"` or `"de"` to skip language detection |
+| `transcription.languages` | `[]` | e.g. `["en", "tr"]`: auto-detect chooses only from these (Settings > Detect only); faster-whisper only |
 | `transcription.vocabulary` | `[]` | names and jargon to spell your way (the Dictionary page is easier) |
 | `cleanup.model` | `claude-haiku-5-5` | fast and cheap (~$0.0001 per dictation); `claude-opus-5-5` is the most capable but ~40x the cost |
 | `cleanup.effort` | `low` | higher effort is slower and rarely needed here |
@@ -207,7 +208,8 @@ log the transcripts.
   (Windows: Settings > System > Sound > Input; Linux: Sound settings > Input). Many laptops default
   to the headset jack even with nothing plugged in.
 - **The text is wrong or misspelled.** Add names and jargon on the Dictionary page, set
-  `transcription.language` if you only speak one language, or try a larger model.
+  `transcription.language` if you only speak one language (or `transcription.languages` if you
+  switch between a few), or try a larger model.
 - **Claude cleanup, Ask Anything or Translate don't work.** Settings > Claude shows whether a key
   is connected; the log shows why a request failed. Without Claude the raw transcript is pasted.
 - **There is no tray icon (Linux).** Your desktop needs a system tray (see the Linux notes above).

@@ -48,6 +48,7 @@ class Job:
     intent: Intent = Intent.DICTATE
     selection: str = ""  # text selected in the target app (Ask Anything)
     selection_ready: threading.Event | None = None  # set once `selection` has been read
+    language: str = ""  # detected by the transcriber
 
 
 class App:
@@ -346,7 +347,8 @@ class App:
             self.tray.notify("The speech model is not loaded; check the speech settings.")
             return
         t0 = time.perf_counter()
-        raw = self.transcriber.transcribe(job.audio)
+        transcript = self.transcriber.transcribe(job.audio)
+        raw, job.language = transcript.text, transcript.language
         t1 = time.perf_counter()
         log.debug("Raw transcript: %r", raw)
         if not raw:
@@ -363,7 +365,7 @@ class App:
                 self.tray.notify(f"Not translated ({self.cleaner.last_error}); pasted what you said.")
                 text = raw
         else:
-            text = self.cleaner.clean(raw, job.app, dictionary)
+            text = self.cleaner.clean(raw, job.app, dictionary, job.language)
         t2 = time.perf_counter()
         log.debug("Cleaned text: %r", text)
         if text:
@@ -398,6 +400,7 @@ class App:
             self.store.add_history(
                 job.intent.value, job.app.process_name, job.app.window_title, raw, final,
                 job.audio.size / SAMPLE_RATE, to_wav(job.audio) if self.cfg.history.keep_audio else None,
+                language=job.language,
             )
         except Exception:
             log.exception("Could not save this dictation to the history")

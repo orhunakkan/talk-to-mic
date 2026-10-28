@@ -503,8 +503,9 @@ class HistoryPage(QWidget):
         where = entry.process_name or "unknown app"
         if entry.window_title:
             where += f" ({one_line(entry.window_title, 60)})"
+        language = f" · {entry.language}" if entry.language else ""
         self.meta.setText(f"{MODE_LABELS.get(entry.mode, entry.mode)} · {when} · {where} · "
-                          f"{entry.duration_s:.1f} s · {entry.word_count} words")
+                          f"{entry.duration_s:.1f} s · {entry.word_count} words{language}")
         self.final.setPlainText(entry.final_text)
         self.raw.setPlainText(entry.raw_text)
 
@@ -662,6 +663,11 @@ class SettingsPage(QWidget):
         self.language = QLineEdit()
         self.language.setPlaceholderText("auto-detect (or a code such as en, tr)")
         f.addRow("Language", self.language)
+        self.languages = QLineEdit()
+        self.languages.setPlaceholderText("any language (or codes such as en, tr)")
+        self.languages.setToolTip("When Language is empty, auto-detect chooses only from these. "
+                                  "faster-whisper engine only.")
+        f.addRow("Detect only", self.languages)
         self.beam = QSpinBox()
         self.beam.setRange(1, 10)
         f.addRow("Beam size", self.beam)
@@ -779,6 +785,7 @@ class SettingsPage(QWidget):
         self._select(self.engine, cfg.transcription.engine)
         self._select_text(self.whisper_model, cfg.transcription.model)
         self.language.setText(cfg.transcription.language)
+        self.languages.setText(", ".join(cfg.transcription.languages))
         self.beam.setValue(cfg.transcription.beam_size)
         self.server_url.setText(cfg.transcription.server_url)
         self._select_text(self.target_language, cfg.translation.target_language)
@@ -859,6 +866,7 @@ class SettingsPage(QWidget):
         cfg.transcription.engine = self.engine.currentData()
         cfg.transcription.model = self.whisper_model.currentText().strip() or cfg.transcription.model
         cfg.transcription.language = self.language.text().strip().lower()
+        cfg.transcription.languages = [c.strip().lower() for c in self.languages.text().split(",") if c.strip()]
         cfg.transcription.beam_size = self.beam.value()
         cfg.transcription.server_url = self.server_url.text().strip()
         cfg.translation.target_language = self.target_language.currentText().strip() or "English"
